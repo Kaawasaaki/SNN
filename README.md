@@ -4,6 +4,10 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-1.12+-important.svg)](https://pytorch.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.25+-orange.svg)](https://streamlit.io)
 
+
+![Live Demo of Streamlit App](https://raw.githubusercontent.com/Kaawasaaki/SNN/master/csnn_streamlit_demo.gif)
+
+
 ## Abstract
 
 This project presents the development, training, and visualization of a Convolutional Spiking Neural Network (CSNN), a class of bio-inspired models that emulate the brain's event-driven and energy-efficient processing. The primary objective was to gain a practical understanding of neuromorphic computing principles. A CSNN was implemented from scratch using PyTorch and the snnTorch library, employing Leaky Integrate-and-Fire (LIF) neuron models. The model was trained on the MNIST handwritten digit dataset, achieving a validation accuracy of 97%.
