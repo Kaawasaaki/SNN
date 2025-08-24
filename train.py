@@ -5,10 +5,8 @@ import logging
 from pathlib import Path
 import json
 import time
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, List
 import gc
-
-# --- PyTorch and Related Imports ---
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,51 +23,51 @@ class MemoryOptimizedConfig:
     
     # Reduced parameters for memory efficiency
     NUM_EPOCHS = 20
-    BATCH_SIZE = 32           # Much smaller batch size
+    BATCH_SIZE = 32           
     LEARNING_RATE = 1e-3
     WEIGHT_DECAY = 1e-4
     GRADIENT_CLIP_VALUE = 0.5
     
     # SNN settings optimized for memory
-    NUM_STEPS = 15            # Fewer timesteps to save memory
+    NUM_STEPS = 15            
     BETA = 0.9
     
     # Memory management
-    ACCUMULATION_STEPS = 4    # Gradient accumulation to simulate larger batches
-    EFFECTIVE_BATCH_SIZE = BATCH_SIZE * ACCUMULATION_STEPS  # 128 effective
+    ACCUMULATION_STEPS = 4    
+    EFFECTIVE_BATCH_SIZE = BATCH_SIZE * ACCUMULATION_STEPS  
     
     # Training optimizations
     LABEL_SMOOTHING = 0.05
-    USE_AMP = True           # Mixed precision to save memory
+    USE_AMP = True           
     
     # Hardware settings
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     SEEDS = [42]             # Single seed to save memory
     
     # Memory cleanup settings
-    CLEANUP_FREQUENCY = 10   # Clear cache every N batches
+    CLEANUP_FREQUENCY = 10   
     
     # Output
     OUTPUT_DIR = Path("./models_mnist_opt")
-    SAVE_CHECKPOINTS_ONLY = True  # Don't save plots/metrics to save memory
+    SAVE_CHECKPOINTS_ONLY = True  
     
     def select_model_type(self):
         """Automatically select model type based on available GPU memory"""
         if not torch.cuda.is_available():
-            logger.info("🖥️  Using CPU - selecting CompactCSNN for efficiency")
+            logger.info("  Using CPU - selecting CompactCSNN for efficiency")
             return 'compact'
         
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9  # GB
-        logger.info(f"🎯 GPU Memory: {gpu_memory:.1f}GB")
+        logger.info(f" GPU Memory: {gpu_memory:.1f}GB")
         
         if gpu_memory <= 4:
-            logger.info("📱 Low memory GPU detected - using CompactCSNN")
+            logger.info(" Low memory GPU detected - using CompactCSNN")
             return 'compact'
         elif gpu_memory <= 8:
-            logger.info("💻 Medium memory GPU - using MemoryOptimizedCSNN")  
+            logger.info(" Medium memory GPU - using MemoryOptimizedCSNN")  
             return 'memory_optimized'
         else:
-            logger.info("🚀 High memory GPU - using MemoryOptimizedCSNN with higher settings")
+            logger.info(" High memory GPU - using MemoryOptimizedCSNN with higher settings")
             return 'memory_optimized'
     
     def adjust_for_model_type(self, model_type):
@@ -79,15 +77,15 @@ class MemoryOptimizedConfig:
             self.BATCH_SIZE = min(self.BATCH_SIZE, 16)
             self.NUM_STEPS = min(self.NUM_STEPS, 12)
             self.ACCUMULATION_STEPS = max(self.ACCUMULATION_STEPS, 8)
-            self.LEARNING_RATE = 2e-3  # Higher LR for compact model
-            logger.info("⚡ Adjusted settings for CompactCSNN")
+            self.LEARNING_RATE = 2e-3  
+            logger.info(" Adjusted settings for CompactCSNN")
         elif model_type == 'memory_optimized':
-            # Standard memory-optimized settings
-            logger.info("🎯 Using standard memory-optimized settings")
+            
+            logger.info(" Using standard memory-optimized settings")
         
         # Recalculate effective batch size
         self.EFFECTIVE_BATCH_SIZE = self.BATCH_SIZE * self.ACCUMULATION_STEPS
-        logger.info(f"📊 Final settings: batch={self.BATCH_SIZE}, steps={self.NUM_STEPS}, effective_batch={self.EFFECTIVE_BATCH_SIZE}")
+        logger.info(f"Final settings: batch={self.BATCH_SIZE}, steps={self.NUM_STEPS}, effective_batch={self.EFFECTIVE_BATCH_SIZE}")
 
 
 def create_model(model_type: str, config: MemoryOptimizedConfig):
@@ -95,34 +93,34 @@ def create_model(model_type: str, config: MemoryOptimizedConfig):
     try:
         if model_type == 'compact':
             model = CompactCSNN(beta=config.BETA)
-            logger.info("🔧 Created CompactCSNN model")
+            logger.info(" Created CompactCSNN model")
         elif model_type == 'memory_optimized':
             model = MemoryOptimizedCSNN(beta=config.BETA)
-            logger.info("🔧 Created MemoryOptimizedCSNN model")
+            logger.info(" Created MemoryOptimizedCSNN model")
         elif model_type == 'original':
             # Try to use original CSNN if available
             model = CSNN(beta=config.BETA)
-            logger.info("🔧 Created original CSNN model")
+            logger.info(" Created original CSNN model")
         else:
             # Fallback to memory optimized
             model = MemoryOptimizedCSNN(beta=config.BETA)
-            logger.info("🔧 Fallback to MemoryOptimizedCSNN model")
+            logger.info(" Fallback to MemoryOptimizedCSNN model")
         
         # Log model info
         param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        logger.info(f"📊 Model parameters: {param_count:,}")
+        logger.info(f" Model parameters: {param_count:,}")
         
         # Calculate model size if method available
         if hasattr(model, 'get_model_size'):
             model_size = model.get_model_size()
-            logger.info(f"💾 Model size: {model_size:.2f} MB")
+            logger.info(f" Model size: {model_size:.2f} MB")
         
         return model
         
     except Exception as e:
-        logger.error(f"❌ Failed to create {model_type} model: {e}")
-        logger.info("🔄 Falling back to CompactCSNN...")
-        return CompactCSNN(beta=config.BETA)# train.py - Memory-Optimized SNN Training for MNIST
+        logger.error(f" Failed to create {model_type} model: {e}")
+        logger.info("Falling back to CompactCSNN...")
+        return CompactCSNN(beta=config.BETA)
 
 
 
@@ -134,9 +132,9 @@ logger = logging.getLogger(__name__)
 try:
     from model import CSNN, MemoryOptimizedCSNN, CompactCSNN  # Import all model variants
     from dataset import get_mnist_loaders
-    logger.info("✅ Successfully imported model variants and dataset loader")
+    logger.info("Successfully imported model variants and dataset loader")
 except ImportError as e:
-    logger.error(f"❌ Error importing custom modules: {e}")
+    logger.error(f" Error importing custom modules: {e}")
     logger.error("Make sure model.py and dataset.py exist in the same directory")
     logger.error("Required exports: CSNN (or MemoryOptimizedCSNN/CompactCSNN) and get_mnist_loaders")
     sys.exit(1)
@@ -149,13 +147,13 @@ def setup_memory_optimization():
         # Set memory allocation strategy
         os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
         
-        # Enable memory-efficient attention if available
+        
         try:
             torch.backends.cuda.enable_flash_sdp(True)
         except:
             pass
         
-        # Clear cache
+        
         torch.cuda.empty_cache()
         
         # Set deterministic operations for reproducibility
@@ -177,7 +175,7 @@ def memory_cleanup():
 def calculate_snn_accuracy(output_spikes: torch.Tensor, targets: torch.Tensor) -> int:
     """Memory-efficient accuracy calculation"""
     with torch.no_grad():
-        spike_counts = output_spikes.sum(dim=0)  # [batch_size, num_classes]
+        spike_counts = output_spikes.sum(dim=0)  
         _, predicted_idx = spike_counts.max(dim=1)
         correct = (predicted_idx == targets).sum().item()
     return correct
@@ -250,7 +248,7 @@ class MemoryEfficientTrainer:
             
             # Gradient accumulation step
             if (batch_idx + 1) % self.config.ACCUMULATION_STEPS == 0:
-                # Gradient clipping and optimizer step
+                
                 self.scaler.unscale_(self.optimizer)
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config.GRADIENT_CLIP_VALUE)
                 self.scaler.step(self.optimizer)
@@ -261,7 +259,7 @@ class MemoryEfficientTrainer:
                 
                 self.optimizer.zero_grad(set_to_none=True)
             
-            # Update metrics
+            #
             train_loss_total += total_loss
             train_correct_total += total_correct
             train_samples_total += len(targets)
@@ -362,21 +360,21 @@ def main():
     # Adjust config based on model selection
     config.adjust_for_model_type(selected_model_type)
     
-    logger.info("🚀 Memory-Optimized SNN Training for MNIST")
-    logger.info(f"📱 Device: {config.DEVICE}")
-    logger.info(f"🧠 Model: {selected_model_type}")
-    logger.info(f"📊 Batch size: {config.BATCH_SIZE} (effective: {config.EFFECTIVE_BATCH_SIZE})")
-    logger.info(f"⏱️  Timesteps: {config.NUM_STEPS}, β: {config.BETA}")
-    logger.info(f"⚡ Mixed precision: {config.USE_AMP}")
+    logger.info("Memory-Optimized SNN Training for MNIST")
+    logger.info(f" Device: {config.DEVICE}")
+    logger.info(f"Model: {selected_model_type}")
+    logger.info(f"Batch size: {config.BATCH_SIZE} (effective: {config.EFFECTIVE_BATCH_SIZE})")
+    logger.info(f" Timesteps: {config.NUM_STEPS}, β: {config.BETA}")
+    logger.info(f" Mixed precision: {config.USE_AMP}")
     
     # Verify imports and compatibility
-    logger.info("\n🔍 Checking module compatibility...")
+    logger.info("\n Checking module compatibility...")
     try:
         # Test model creation
         test_model_type = selected_model_type
         test_model = create_model(test_model_type, config)
         del test_model  # Clean up
-        logger.info("✅ Model creation successful")
+        logger.info(" Model creation successful")
         
         # Test dataset loading  
         test_train, test_val = get_mnist_loaders(batch_size=4, num_workers=0, root="./data")
@@ -392,7 +390,7 @@ def main():
         logger.error("3. Install required packages: torch, torchvision, snntorch")
         return
     
-    logger.info("✅ All compatibility checks passed!")
+    logger.info(" All compatibility checks passed!")
     
     # Training
     results = {}
@@ -404,7 +402,7 @@ def main():
             results[seed] = best_acc
         except RuntimeError as e:
             if "out of memory" in str(e).lower():
-                logger.error(f"💥 OOM Error for seed {seed}")
+                logger.error(f" OOM Error for seed {seed}")
                 logger.error(f"Current settings: batch={config.BATCH_SIZE}, steps={config.NUM_STEPS}")
                 
                 # Emergency memory cleanup
