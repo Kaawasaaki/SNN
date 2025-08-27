@@ -1,6 +1,4 @@
 # visualize.py
-# A complete script to load your trained CSNN and create an interactive web demo.
-
 
 import torch
 import torch.nn as nn
